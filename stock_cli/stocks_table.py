@@ -30,7 +30,7 @@ class StocksTable:
         self._stocks = stocks
         self._period = period
 
-        self._end = parser.parse(end)
+        self._end = self._get_end_date(end)
 
         self._start = self._get_start_date(self._period, self._end)
 
@@ -46,7 +46,7 @@ class StocksTable:
     def _get_requested_data(
         self, stocks: list, interval: str, start: datetime.date, end: datetime.date
     ) -> pd.DataFrame:
-        end = self._get_end_date(end)
+        end = self._end + relativedelta(days=1)
         print("Getting requested data...")
         stocks_joined = ",".join(stocks)
         data = yf.download(stocks_joined, interval=interval, start=start, end=end)
@@ -57,7 +57,7 @@ class StocksTable:
 
     def _get_data_52_weeks(self, stocks: list, end: datetime.date) -> pd.DataFrame:
         print("Getting 52 week low and high data...")
-        end = self._get_end_date(end)
+        end = self._end + relativedelta(days=1)
         stocks_joined = ",".join(stocks)
         start = self._get_start_date("1y", end)
         data = yf.download(stocks_joined, interval="3mo", start=start, end=end)
@@ -67,11 +67,11 @@ class StocksTable:
         return data
 
     @staticmethod
-    def _get_end_date(date: datetime.date) -> datetime.date:
+    def _get_end_date(date: str) -> datetime.date:
         if date == "Today":
-            return datetime.date.today() + relativedelta(days=1)
+            return datetime.date.today()
         else:
-            return date + relativedelta(days=1)
+            return parser.parse(date).date()
 
     @staticmethod
     def _get_start_date(period: str, end_date: datetime.date) -> datetime.date:
@@ -260,7 +260,7 @@ class StocksTable:
         sheet = workbook.active
 
         sheet.merge_cells("A1:F1")
-        sheet["A1"] = self._end.date()
+        sheet["A1"] = self._end
         sheet["A1"].font = Font(size=20)
         sheet["A1"].alignment = Alignment("center")
         sheet.row_dimensions[1].height = 25
@@ -277,4 +277,4 @@ class StocksTable:
             sheet.column_dimensions[column_letter].width = 18
             sheet.column_dimensions[column_letter].number_format = "#,##0.00"
 
-        workbook.save(name + " " + str(self._end.date()) + ".xlsx")
+        workbook.save(name + " " + str(self._end) + ".xlsx")
