@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "stock-cli"
+version = "0.1.0"
+description = ""
+authors = ["Raymond DeVries <raymond.l.devries@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.scripts]
+stock-data = "stock_cli.cli:app"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+yfinance = "^0.1.54"
+pandas = "^1.0.3"
+ta = "^0.5.20"
+python-dateutil = "^2.8.1"
+openpyxl = "^3.0.3"
+typer = "^0.1.1"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
