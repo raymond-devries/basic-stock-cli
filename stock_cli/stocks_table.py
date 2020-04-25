@@ -102,6 +102,8 @@ class StocksTable:
     def _process_data(
             self, data: pd.DataFrame, data_52_weeks: pd.DataFrame
     ) -> pd.DataFrame:
+        data = data.dropna(how='all')
+
         price = self._calculate_price(data)
         low_52_weeks = self._calculate_52_week_low(data_52_weeks)
         high_52_weeks = self._calculate_52_week_high(data_52_weeks)
