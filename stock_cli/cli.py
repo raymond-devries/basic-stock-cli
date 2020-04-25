@@ -1,7 +1,7 @@
 import typer
 from typing import List
-import csv
 from stock_cli.stocks_table import StocksTable
+import pandas as pd
 
 app = typer.Typer()
 
@@ -50,11 +50,8 @@ def get(
     """
     if from_file:
         stocks = stocks[0]
-        with open(stocks) as file:
-            reader = csv.reader(file)
-            data = list(reader)
-            data = sorted([item[0] for item in data])
-            name = typer.prompt("Choose a name for the excel sheet")
+        data = list(pd.read_csv(stocks, header=None, index_col=False)[0])
+        name = typer.prompt("Choose a name for the excel sheet")
     else:
         data = sorted(stocks)
         if custom_name:
