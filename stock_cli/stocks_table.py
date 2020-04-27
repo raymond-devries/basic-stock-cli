@@ -108,6 +108,7 @@ class StocksTable:
         self, data: pd.DataFrame, data_52_weeks: pd.DataFrame
     ) -> pd.DataFrame:
         data = data.dropna(how="all")
+        data = data.loc[~data.index.duplicated(keep='last')]
 
         price = self._calculate_price(data)
         low_52_weeks = self._calculate_52_week_low(data_52_weeks)
