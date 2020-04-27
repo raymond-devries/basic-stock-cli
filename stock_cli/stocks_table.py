@@ -2,6 +2,7 @@ import yfinance as yf
 from openpyxl.utils import get_column_letter
 from ta import volume, momentum, volatility, trend
 import pandas as pd
+import numpy as np
 import datetime
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
@@ -27,6 +28,9 @@ class StocksTable:
     """
 
     def __init__(self, stocks: list, period="1y", interval="1d", end="Today"):
+        # adx calculation throws an error that does not affect it's accuracy
+        np.seterr("ignore")
+
         self._stocks = stocks
         self._period = period
 
@@ -44,7 +48,7 @@ class StocksTable:
         self._table = self._process_data(self._requested_data, self._data_52_weeks)
 
     def _get_requested_data(
-            self, stocks: list, interval: str, start: datetime.date, end: datetime.date
+        self, stocks: list, interval: str, start: datetime.date, end: datetime.date
     ) -> pd.DataFrame:
         end = self._end + relativedelta(days=1)
         print("Getting requested data...")
@@ -100,9 +104,9 @@ class StocksTable:
         return end_date - delta
 
     def _process_data(
-            self, data: pd.DataFrame, data_52_weeks: pd.DataFrame
+        self, data: pd.DataFrame, data_52_weeks: pd.DataFrame
     ) -> pd.DataFrame:
-        data = data.dropna(how='all')
+        data = data.dropna(how="all")
 
         price = self._calculate_price(data)
         low_52_weeks = self._calculate_52_week_low(data_52_weeks)
@@ -139,6 +143,8 @@ class StocksTable:
             "Keltner Low Band",
         )
 
+        adx = self._calculate_adx(data, 14)
+
         return pd.concat(
             [
                 price,
@@ -156,6 +162,7 @@ class StocksTable:
                 macd_signal,
                 macd_histogram,
                 macd_histogram_pct_change,
+                adx,
             ],
             axis=1,
         )
@@ -200,14 +207,14 @@ class StocksTable:
         data = data.swaplevel(0, 1, 1)
         return (
             data.groupby(level=0, axis=1)
-                .apply(
+            .apply(
                 lambda stock_data: volume.force_index(
                     stock_data.xs("Close", level=1, axis=1).squeeze(),
                     stock_data.xs("Volume", level=1, axis=1).squeeze(),
                     n=period,
                 )
             )
-                .iloc[-1]
+            .iloc[-1]
         )
 
     @staticmethod
@@ -231,28 +238,47 @@ class StocksTable:
         return macd_line, macd_histogram, macd_signal, macd_histogram_pct_change
 
     def _calculate_keltner_bands(
-            self, data: pd.DataFrame, period: int, multiplier
+        self, data: pd.DataFrame, period: int, multiplier
     ) -> tuple:
         ema = self._calculate_ema(data, period)
 
         data = data.swaplevel(0, 1, 1)
         atr = (
             data.groupby(level=0, axis=1)
-                .apply(
+            .apply(
                 lambda stock_data: volatility.average_true_range(
                     stock_data.xs("High", level=1, axis=1).squeeze(),
                     stock_data.xs("Low", level=1, axis=1).squeeze(),
-                    stock_data.xs("Close", level=1, axis=1).squeeze(),
+                    stock_data.xs("Adj Close", level=1, axis=1).squeeze(),
                     n=period,
                 )
             )
-                .iloc[-1]
+            .iloc[-1]
         )
 
         upper_band = ema + multiplier * atr
         lower_band = ema - multiplier * atr
 
         return upper_band, lower_band
+
+    @staticmethod
+    def _calculate_adx(data, period):
+        data = data.swaplevel(0, 1, 1)
+        adx = (
+            data.groupby(level=0, axis=1)
+            .apply(
+                lambda stock_data: trend.adx(
+                    stock_data.xs("High", level=1, axis=1).squeeze(),
+                    stock_data.xs("Low", level=1, axis=1).squeeze(),
+                    stock_data.xs("Adj Close", level=1, axis=1).squeeze(),
+                    n=period,
+                )
+            )
+            .iloc[-1]
+        )
+
+        adx.name = "ADX"
+        return adx
 
     def get_dataframe(self):
         return self._table
