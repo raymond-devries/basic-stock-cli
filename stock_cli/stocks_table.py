@@ -41,17 +41,18 @@ class StocksTable:
         self._interval = interval
 
         self._requested_data = self._get_requested_data(
-            self._stocks, self._interval, self._start, self._end
+            self._stocks, self._interval, self._end
         )
         self._data_52_weeks = self._get_data_52_weeks(self._stocks, self._end)
 
         self._table = self._process_data(self._requested_data, self._data_52_weeks)
 
     def _get_requested_data(
-        self, stocks: list, interval: str, start: datetime.date, end: datetime.date
+        self, stocks: list, interval: str, end: datetime.date
     ) -> pd.DataFrame:
-        end = self._end + relativedelta(days=1)
+        end = end + relativedelta(days=1)
         print("Getting requested data...")
+        start = self._get_start_date("1y", end)
         stocks_joined = ",".join(stocks)
         data = yf.download(stocks_joined, interval=interval, start=start, end=end)
         if len(stocks) == 1:
@@ -61,7 +62,7 @@ class StocksTable:
 
     def _get_data_52_weeks(self, stocks: list, end: datetime.date) -> pd.DataFrame:
         print("Getting 52 week low and high data...")
-        end = self._end + relativedelta(days=1)
+        end = end + relativedelta(days=1)
         stocks_joined = ",".join(stocks)
         start = self._get_start_date("1y", end)
         data = yf.download(stocks_joined, interval="3mo", start=start, end=end)
