@@ -27,7 +27,9 @@ class StocksTable:
         Default is now
     """
 
-    def __init__(self, stocks: list, period="1y", interval="1d", end="Today"):
+    def __init__(
+        self, stocks: list, period="1y", interval="1d", end="Today", threaded=True
+    ):
         # adx calculation throws an error that does not affect it's accuracy
         np.seterr("ignore")
 
@@ -41,31 +43,37 @@ class StocksTable:
         self._interval = interval
 
         self._requested_data = self._get_requested_data(
-            self._stocks, self._interval, self._end
+            self._stocks, self._interval, self._end, threaded
         )
-        self._data_52_weeks = self._get_data_52_weeks(self._stocks, self._end)
+        self._data_52_weeks = self._get_data_52_weeks(self._stocks, self._end, threaded)
 
         self._table = self._process_data(self._requested_data, self._data_52_weeks)
 
     def _get_requested_data(
-        self, stocks: list, interval: str, end: datetime.date
+        self, stocks: list, interval: str, end: datetime.date, threaded: bool
     ) -> pd.DataFrame:
         end = end + relativedelta(days=1)
         print("Getting requested data...")
         start = self._get_start_date("1y", end)
         stocks_joined = ",".join(stocks)
-        data = yf.download(stocks_joined, interval=interval, start=start, end=end)
+        data = yf.download(
+            stocks_joined, interval=interval, start=start, end=end, threads=threaded
+        )
         if len(stocks) == 1:
             data.columns = [data.columns, len(data.columns) * [stocks[0].upper()]]
 
         return data
 
-    def _get_data_52_weeks(self, stocks: list, end: datetime.date) -> pd.DataFrame:
+    def _get_data_52_weeks(
+        self, stocks: list, end: datetime.date, threaded: bool
+    ) -> pd.DataFrame:
         print("Getting 52 week low and high data...")
         end = end + relativedelta(days=1)
         stocks_joined = ",".join(stocks)
         start = self._get_start_date("1y", end)
-        data = yf.download(stocks_joined, interval="3mo", start=start, end=end)
+        data = yf.download(
+            stocks_joined, interval="3mo", start=start, end=end, threads=threaded
+        )
         if len(stocks) == 1:
             data.columns = [data.columns, len(data.columns) * [stocks[0].upper()]]
 
@@ -108,7 +116,7 @@ class StocksTable:
         self, data: pd.DataFrame, data_52_weeks: pd.DataFrame
     ) -> pd.DataFrame:
         data = data.dropna(how="all")
-        data = data.loc[~data.index.duplicated(keep='last')]
+        data = data.loc[~data.index.duplicated(keep="last")]
 
         price = self._calculate_price(data)
         low_52_weeks = self._calculate_52_week_low(data_52_weeks)

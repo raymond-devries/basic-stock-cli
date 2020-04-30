@@ -43,6 +43,9 @@ def get(
         help="Download end date string (YYYY-MM-DD)",
         show_default=True,
     ),
+    threaded: bool = typer.Option(
+        True, "-nt", "--not-threaded", help="Download without threads"
+    ),
 ):
     """
     Download stock data from yahoo finance, calculate technical indicators and export
@@ -60,6 +63,6 @@ def get(
             name = " ".join(data)
 
     typer.echo("Downloading Data...")
-    stocks_table = StocksTable(data, period, interval, end)
+    stocks_table = StocksTable(data, period, interval, end, threaded=threaded)
     stocks_table.export_excel(name)
     typer.echo("A excel file was successfully created!")
